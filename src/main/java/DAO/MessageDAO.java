@@ -36,7 +36,7 @@ public class MessageDAO {
                 Connection connection = ConnectionUtil.getConnection();
         try {
             //Write SQL logic here
-            String sql = "select * from message where posted_by = ? ";
+            String sql = "select * from message where message_id = ? ";
             
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
