@@ -35,6 +35,7 @@ public class SocialMediaController {
         app.post("/accounts", this::postAccountHandler);
         app.get("/messages", this::getAllMessagesHandler);
         app.post("/messages", this::postMessageHandler);
+        app.delete(null, this::deleteMessageHandler);
        // app.start(8080);
 
         return app;
@@ -56,16 +57,30 @@ public class SocialMediaController {
    private void postMessageHandler(Context ctx) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         Message message = mapper.readValue(ctx.body(), Message.class);
-        Message addedMessage = messageService.addMessage(message);
+        
+       if (message.getMessage_text() == null || message.getMessage_text().trim().isEmpty()) {
+        ctx.status(400).result("");  
+        return;
+       }
+       Message addedMessage = messageService.addMessage(message);
         if(addedMessage!=null){
             ctx.json(mapper.writeValueAsString(addedMessage));
         }else{
-            ctx.status(400);
+            ctx.status(400).result("");
         }
     }
     public void getAllMessagesHandler(Context ctx){
         List<Message> messages = messageService.getAllMessages();
         ctx.json(messages);
+    }
+    private void deleteMessageHandler(Context ctx){
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        Message deleted = messageService.deletMessage(id);  // note spelling: deletMessage
+        if (deleted != null) {
+            ctx.status(200).json(deleted);
+        } else {
+            ctx.status(404).result("");  // not found
+        }    
     }
     /**
      * This is an example handler for an example endpoint.
