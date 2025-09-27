@@ -35,8 +35,8 @@ public class SocialMediaController {
         app.post("/accounts", this::postAccountHandler);
         app.get("/messages", this::getAllMessagesHandler);
         app.post("/messages", this::postMessageHandler);
-        app.delete(null, this::deleteMessageHandler);
-       // app.start(8080);
+        app.delete("/messages/{id}", this::deleteMessageHandler);
+        app.start(8080);
 
         return app;
     }
