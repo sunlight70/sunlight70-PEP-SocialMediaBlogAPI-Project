@@ -34,6 +34,8 @@ public class SocialMediaController {
         app.get("/accounts", this::getAllAccountsHandler);
         app.post("/accounts", this::postAccountHandler);
         app.get("/messages", this::getAllMessagesHandler);
+        app.get("/messages/{id}", this::getMessageHandler);
+        app.get("/accounts/{id}/messages", this::getAllMessagesFromUserHandler); 
         app.post("/messages", this::postMessageHandler);
         app.delete("/messages/{id}", this::deleteMessageHandler);
        // app.start(8080);
@@ -73,14 +75,30 @@ public class SocialMediaController {
         List<Message> messages = messageService.getAllMessages();
         ctx.json(messages);
     }
+    private void getAllMessagesFromUserHandler(Context ctx) {
+       int userId = Integer.parseInt(ctx.pathParam("id"));
+       List<Message> messages = messageService.getAllMessagesFromUser(userId);
+
+        ctx.json(messages); 
+   }
+    private void getMessageHandler(Context ctx)
+    {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        Message gotmessage = messageService.getMessage(id);
+        if (gotmessage != null) {
+            ctx.json(gotmessage);   
+        } else {
+            ctx.result("");      
+        } 
+    }
     private void deleteMessageHandler(Context ctx){
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Message deleted = messageService.deletMessage(id);  // note spelling: deletMessage
+        Message deleted = messageService.deleteMessage(id);  // note spelling: deletMessage
         if (deleted != null) {
-            ctx.status(200).json(deleted);
+            ctx.json(deleted);   // return deleted message
         } else {
-            ctx.status(404).result("");  // not found
-        }    
+            ctx.result("");      // empty body, still 200
+    } 
     }
     /**
      * This is an example handler for an example endpoint.

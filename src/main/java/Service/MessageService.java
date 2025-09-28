@@ -20,8 +20,14 @@ public class MessageService {
     public Message addMessage(Message message){
         return messageDAO.insertMessage(message);
     }
-    public Message deletMessage(int id){
-        return messageDAO.deletMessage(id);
+    public Message deleteMessage(int id){
+        return messageDAO.deleteMessage(id);
+    }
+    public Message getMessage(int id){
+        return messageDAO.getMessageById(id);
+    }
+    public List<Message> getAllMessagesFromUser(int userId) {
+      return messageDAO.getAllMessagesByUser(userId);
     }
     
 }

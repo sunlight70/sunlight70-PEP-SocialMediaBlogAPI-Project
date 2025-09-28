@@ -17,7 +17,7 @@ public class MessageDAO {
         List<Message> messages = new ArrayList<>();
         try {
             //Write SQL logic here
-            String sql = "select * from message;";
+            String sql = "select * from message";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
             ResultSet rs = preparedStatement.executeQuery();
             while(rs.next()){
@@ -32,8 +32,34 @@ public class MessageDAO {
         }
         return messages;
     }
+    public List<Message> getAllMessagesByUser(int userId) {
+    List<Message> messages = new ArrayList<>();
+    String sql = "SELECT * FROM message WHERE posted_by = ?";
+
+    try (Connection connection = ConnectionUtil.getConnection();
+         PreparedStatement ps = connection.prepareStatement(sql)) {
+
+        ps.setInt(1, userId); // important!
+        ResultSet rs = ps.executeQuery();
+
+        while (rs.next()) {
+            Message message = new Message(
+                rs.getInt("message_id"),
+                rs.getInt("posted_by"),
+                rs.getString("message_text"),
+                rs.getLong("time_posted_epoch")
+            );
+            messages.add(message);
+        }
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+
+    return messages;
+   }
     public Message getMessageById(int id){
-                Connection connection = ConnectionUtil.getConnection();
+        Connection connection = ConnectionUtil.getConnection();
         try {
             //Write SQL logic here
             String sql = "select * from message where message_id = ? ";
@@ -44,7 +70,7 @@ public class MessageDAO {
             preparedStatement.setInt(1, id);
             ResultSet rs = preparedStatement.executeQuery();
             while(rs.next()){
-                Message message = new Message(rs.getInt("posted_by"), rs.getString("message_text"),
+                Message message = new Message(rs.getInt("message_id"), rs.getInt("posted_by"), rs.getString("message_text"),
                         rs.getLong("time_posted_epoch"));
                 return message;
             }
@@ -54,39 +80,21 @@ public class MessageDAO {
         return null;
 
     }
-    public Message deletMessage(int id){
-    String selectSql = "SELECT * FROM message WHERE message_id = ?";
-    String deleteSql = "DELETE FROM message WHERE message_id = ?";
-
-    try (Connection connection = ConnectionUtil.getConnection();
-         PreparedStatement selectPs = connection.prepareStatement(selectSql)) {
-
-        selectPs.setInt(1, id);
-        try (ResultSet rs = selectPs.executeQuery()) {
-            Message message;
-            if (rs.next()) {
-                message = new Message(
-                        rs.getInt("posted_by"),
-                        rs.getString("message_text"),
-                        rs.getLong("time_posted_epoch")
-                );
-            } else {
-                // Return a dummy message instead of null to prevent 404
-                message = new Message(0, "dummy", 0L);
-            }
-
-            try (PreparedStatement deletePs = connection.prepareStatement(deleteSql)) {
-                deletePs.setInt(1, id);
-                deletePs.executeUpdate();  // correct for DELETE
-            }
-
-            return message;
+    public Message deleteMessage(int id){
+            Message toDelete = getMessageById(id); // fetch from DB first
+        if (toDelete == null) {
+            return null;
         }
-    } catch (SQLException e) {
-        e.printStackTrace();
-        // return dummy message to avoid 404
-        return new Message(0, "dummy", 0L);
-    }     
+
+        String sql = "delete from message where message_id = ?";
+        try (Connection conn = ConnectionUtil.getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return toDelete;  
 
     }
     public Message insertMessage(Message message){
@@ -119,16 +127,18 @@ public class MessageDAO {
             } else {
                 throw new SQLException("Inserting message failed, no ID obtained.");
             }
-        }
-    } catch (SQLException e) {
+         }
+        } catch (SQLException e) {
         e.printStackTrace();
         return null;
     }
 
     }
     public void updateMessage(int id, Message message){
-        Connection connection = ConnectionUtil.getConnection();
-        try {
+        if (message.getMessage_text() == null || message.getMessage_text().trim().isEmpty()) {
+          throw new IllegalArgumentException("message_text cannot be blank");
+        }               
+        try { Connection connection = ConnectionUtil.getConnection();
             String sql = "update message set message_text =?, time_posted_epoch = ? where message_id =?;";
             PreparedStatement preparedStatement = connection.prepareStatement(sql);
 
@@ -137,12 +147,15 @@ public class MessageDAO {
              preparedStatement.setLong(2, message.getTime_posted_epoch());
              preparedStatement.setInt(3, id);
 
-             preparedStatement.executeUpdate();  
+            
+            int rowsAffected = preparedStatement.executeUpdate();
+            if (rowsAffected == 0) {
+            throw new SQLException("Inserting message failed, no rows affected.");
+            }
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-
-
     }
 }
+
