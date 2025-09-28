@@ -134,28 +134,32 @@ public class MessageDAO {
     }
 
     }
-    public void updateMessage(int id, Message message){
-        if (message.getMessage_text() == null || message.getMessage_text().trim().isEmpty()) {
-          throw new IllegalArgumentException("message_text cannot be blank");
-        }               
-        try { Connection connection = ConnectionUtil.getConnection();
-            String sql = "update message set message_text =?, time_posted_epoch = ? where message_id =?;";
-            PreparedStatement preparedStatement = connection.prepareStatement(sql);
-
-            //write PreparedStatement setString and setInt methods here.
-             preparedStatement.setString(1, message.getMessage_text());
-             preparedStatement.setLong(2, message.getTime_posted_epoch());
-             preparedStatement.setInt(3, id);
-
-            
-            int rowsAffected = preparedStatement.executeUpdate();
-            if (rowsAffected == 0) {
-            throw new SQLException("Inserting message failed, no rows affected.");
-            }
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+    public Message updateMessage(int id, String newText){
+        if (newText == null || newText.trim().isEmpty() || newText.length() > 255) {
+            throw new IllegalArgumentException("message_text cannot be blank or > 255 chars");
         }
+
+        Message existing = getMessageById(id);
+        if (existing == null) {
+            return null;
+        }
+        long newTime = existing.getTime_posted_epoch();
+        try (Connection connection = ConnectionUtil.getConnection()) {
+            String sql = "UPDATE message SET message_text = ?, time_posted_epoch = ? WHERE message_id = ?";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, newText);
+            ps.setLong(2, newTime);
+            ps.setInt(3, id);
+          
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected == 0) return null;
+
+            return new Message(existing.getMessage_id(), existing.getPosted_by(), newText, newTime);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+
     }
 }
 

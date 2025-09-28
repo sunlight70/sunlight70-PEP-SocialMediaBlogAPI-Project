@@ -29,5 +29,8 @@ public class MessageService {
     public List<Message> getAllMessagesFromUser(int userId) {
       return messageDAO.getAllMessagesByUser(userId);
     }
+    public Message updateMessage(int id, String message){
+        return messageDAO.updateMessage(id, message);
+    }
     
 }

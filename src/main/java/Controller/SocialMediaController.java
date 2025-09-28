@@ -7,6 +7,7 @@ import Service.MessageService;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -33,14 +34,37 @@ public class SocialMediaController {
         Javalin app = Javalin.create();
         app.get("/accounts", this::getAllAccountsHandler);
         app.post("/accounts", this::postAccountHandler);
+        app.post("/login",this::loginHandler);
         app.get("/messages", this::getAllMessagesHandler);
         app.get("/messages/{id}", this::getMessageHandler);
         app.get("/accounts/{id}/messages", this::getAllMessagesFromUserHandler); 
         app.post("/messages", this::postMessageHandler);
         app.delete("/messages/{id}", this::deleteMessageHandler);
+        app.put("/messages/{id}", this::updateMessageHandler);
+        app.patch("/messages/{id}", this::patchMessageHandler);
        // app.start(8080);
 
         return app;
+    }
+    private void loginHandler(Context ctx){
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode bodyNode = mapper.readTree(ctx.body());
+
+        if (!bodyNode.has("username") || !bodyNode.has("password")) {
+            ctx.status(400).result(""); // missing credentials
+            return;
+        }
+
+        String username = bodyNode.get("username").asText();
+        String password = bodyNode.get("password").asText();
+
+        Account account = accountService.login(username, password);
+        if (account == null) {
+            ctx.status(400).result(""); // invalid credentials
+            return;
+    }
+
+    ctx.json(account); // login successful
     }
     private void postAccountHandler(Context ctx) throws JsonProcessingException{
         ObjectMapper mapper = new ObjectMapper();
@@ -100,13 +124,59 @@ public class SocialMediaController {
             ctx.result("");      // empty body, still 200
     } 
     }
-    /**
-     * This is an example handler for an example endpoint.
-     * @param context The Javalin Context object manages information about both the HTTP request and response.
-     */
-   
-    // private void exampleHandler(Context context) {
-     //   context.json("sample text");
-    //}
+    private void updateMessageHandler(Context ctx) throws JsonProcessingException {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        ObjectMapper mapper = new ObjectMapper();
+
+        JsonNode bodyNode = mapper.readTree(ctx.body());
+        if (!bodyNode.has("message_text")) {
+            ctx.status(400).result("message_text is required");
+            return;
+        }
+
+        String newText = bodyNode.get("message_text").asText();
+        if (newText == null || newText.trim().isEmpty() || newText.length() > 255) {
+            ctx.status(400).result(""); // invalid input → 400 empty body
+            return;
+        }
+       
+            Message updated = messageService.updateMessage(id, newText);
+
+            if (updated == null) {
+                // ID does not exist → 400 with empty body
+                ctx.status(400).result("");
+                return;
+            }
+
+            // Successful update → return full message
+            ctx.status(200).json(updated);       
+      
+    }
+    private void patchMessageHandler(Context ctx) throws JsonProcessingException {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Parse request body
+        JsonNode bodyNode = mapper.readTree(ctx.body());
+        if (!bodyNode.has("message_text")) {
+            ctx.status(400).result("");
+            return;
+        }
+
+        String newText = bodyNode.get("message_text").asText();
+        if (newText == null || newText.trim().isEmpty() || newText.length() > 255) {
+            ctx.status(400).result(""); // invalid input → 400 empty body
+            return;
+        }     
+            Message updated = messageService.updateMessage(id, newText);
+
+            if (updated == null) {
+                // Message ID does not exist
+                ctx.status(400).result("");
+                return;
+            }
+            // Return full updated message
+            ctx.json(updated);
+    }
 
 }

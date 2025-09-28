@@ -16,5 +16,14 @@ public class AccountService {
     public Account addAccount(Account account){
         return accountDAO.insertAccount(account);
     }
+    public Account login(String username, String password){
+        if (username == null || username.trim().isEmpty() ||
+            password == null || password.trim().isEmpty()) {
+            return null; // invalid input
+        }
+        Account account = accountDAO.get
+    return null;
+       }
+    }
     
-}
+
