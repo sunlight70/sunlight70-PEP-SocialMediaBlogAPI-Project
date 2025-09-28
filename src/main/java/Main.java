@@ -44,14 +44,9 @@ public class Main {
             ps5.executeUpdate(); 
            /*  PreparedStatement ps6 = conn.prepareStatement(
                     "insert into message (posted_by, message_text, time_posted_epoch) values " +
-                            "(100, 1, 'ficciones', 2)," +
-                            "(101, 1, 'book of sand', 0)," +
-                            "(102, 2, 'mr palomar', 1)," +
-                            "(103, 2, 'invisible cities', 3)," +
-                            "(104, 3, 'crying of lot 49', 0)," +
-                            "(105, 3, 'mason and dixon', 0)," +
-                            "(106, 4, 'understanding media', 1)," +
-                            "(107, 5, 'critique of pure reason', 7);");
+                            "(1,'test message 1',1669947792)," +
+                            "(2,'test message 2',1669957192)," +
+                            "(1,'test message 3',1669997792));");
             ps6.executeUpdate();*/
 
             

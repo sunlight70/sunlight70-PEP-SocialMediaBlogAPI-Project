@@ -81,7 +81,7 @@ public class MessageDAO {
 
     }
     public Message deleteMessage(int id){
-            Message toDelete = getMessageById(id); // fetch from DB first
+            Message toDelete = getMessageById(id); 
         if (toDelete == null) {
             return null;
         }
