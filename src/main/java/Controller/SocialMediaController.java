@@ -10,6 +10,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import static org.mockito.ArgumentMatchers.nullable;
+
 import java.util.List;
 
 /**
@@ -35,6 +37,7 @@ public class SocialMediaController {
         app.get("/accounts", this::getAllAccountsHandler);
         app.post("/accounts", this::postAccountHandler);
         app.post("/login",this::loginHandler);
+        app.post("/register", this::registerHandler);
         app.get("/messages", this::getAllMessagesHandler);
         app.get("/messages/{id}", this::getMessageHandler);
         app.get("/accounts/{id}/messages", this::getAllMessagesFromUserHandler); 
@@ -46,25 +49,32 @@ public class SocialMediaController {
 
         return app;
     }
-    private void loginHandler(Context ctx){
+    private void loginHandler(Context ctx)throws JsonProcessingException{
         ObjectMapper mapper = new ObjectMapper();
-        JsonNode bodyNode = mapper.readTree(ctx.body());
+        Account credentials = mapper.readValue(ctx.body(), Account.class);
 
-        if (!bodyNode.has("username") || !bodyNode.has("password")) {
-            ctx.status(400).result(""); // missing credentials
-            return;
-        }
+        // Call service to verify login
+        Account loggedIn = accountService.login(credentials.getUsername(), credentials.getPassword());
 
-        String username = bodyNode.get("username").asText();
-        String password = bodyNode.get("password").asText();
-
-        Account account = accountService.login(username, password);
-        if (account == null) {
-            ctx.status(400).result(""); // invalid credentials
-            return;
+        if (loggedIn != null) {
+            // return Account as JSON (including id, username, password)
+            ctx.json(loggedIn);
+        } else {
+            // invalid username or password
+            ctx.status(401).result("");  
+        }  
+   
     }
+    private void registerHandler(Context ctx)throws JsonProcessingException{
+        ObjectMapper mapper = new ObjectMapper();
+        Account account = mapper.readValue(ctx.body(), Account.class);
 
-    ctx.json(account); // login successful
+        Account register = accountService.registerAccount(account.username, account.password);
+        if(register != null)
+            ctx.json(register);
+        else   
+            ctx.status(400).result("");     
+
     }
     private void postAccountHandler(Context ctx) throws JsonProcessingException{
         ObjectMapper mapper = new ObjectMapper();
@@ -117,12 +127,12 @@ public class SocialMediaController {
     }
     private void deleteMessageHandler(Context ctx){
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Message deleted = messageService.deleteMessage(id);  // note spelling: deletMessage
+        Message deleted = messageService.deleteMessage(id);  
         if (deleted != null) {
             ctx.json(deleted);   // return deleted message
         } else {
             ctx.result("");      // empty body, still 200
-    } 
+        } 
     }
     private void updateMessageHandler(Context ctx) throws JsonProcessingException {
         int id = Integer.parseInt(ctx.pathParam("id"));
@@ -136,20 +146,15 @@ public class SocialMediaController {
 
         String newText = bodyNode.get("message_text").asText();
         if (newText == null || newText.trim().isEmpty() || newText.length() > 255) {
-            ctx.status(400).result(""); // invalid input → 400 empty body
+            ctx.status(400).result(""); 
             return;
-        }
-       
-            Message updated = messageService.updateMessage(id, newText);
-
-            if (updated == null) {
-                // ID does not exist → 400 with empty body
-                ctx.status(400).result("");
-                return;
-            }
-
-            // Successful update → return full message
-            ctx.status(200).json(updated);       
+        }       
+        Message updated = messageService.updateMessage(id, newText);
+        if (updated == null) {
+            ctx.status(400).result("");
+            return;
+        }            
+        ctx.status(200).json(updated);     
       
     }
     private void patchMessageHandler(Context ctx) throws JsonProcessingException {
@@ -165,7 +170,7 @@ public class SocialMediaController {
 
         String newText = bodyNode.get("message_text").asText();
         if (newText == null || newText.trim().isEmpty() || newText.length() > 255) {
-            ctx.status(400).result(""); // invalid input → 400 empty body
+            ctx.status(400).result(""); 
             return;
         }     
             Message updated = messageService.updateMessage(id, newText);

@@ -17,13 +17,27 @@ public class AccountService {
         return accountDAO.insertAccount(account);
     }
     public Account login(String username, String password){
-        if (username == null || username.trim().isEmpty() ||
-            password == null || password.trim().isEmpty()) {
-            return null; // invalid input
+            
+        Account existing  = accountDAO.getAccountByUserName(username);
+        if (existing != null && existing.getPassword().equals(password)) {
+          return existing; 
         }
-        Account account = accountDAO.get
-    return null;
-       }
+       return null;    
     }
+    public Account registerAccount(String username, String password){
+        if (username == null || username.isBlank()) {
+            return null;
+        }
+        if (password == null || password.length() < 4) {
+            return null;
+        }
+        if (accountDAO.getAccountByUserName(username) != null) {
+            return null; 
+        }
+        return addAccount(new Account(username, password));
+ }
+}
+
+
     
 
